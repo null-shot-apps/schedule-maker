@@ -71,6 +71,29 @@ export default function ScheduleMaker() {
     }
   };
 
+  const copyMondayToWeekdays = () => {
+    const mondayActivities = activities.filter(a => a.day === 'Monday');
+    const weekdays = ['Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    
+    // Remove existing activities for weekdays (except Monday)
+    const filteredActivities = activities.filter(a => !weekdays.includes(a.day));
+    
+    // Create copies for each weekday
+    const newActivities: Activity[] = [];
+    weekdays.forEach(day => {
+      mondayActivities.forEach(activity => {
+        newActivities.push({
+          ...activity,
+          id: `${Date.now()}-${day}-${activity.id}`,
+          day: day,
+          completed: false,
+        });
+      });
+    });
+    
+    setActivities([...filteredActivities, ...newActivities]);
+  };
+
   const toggleComplete = (id: string) => {
     setActivities(activities.map(a => 
       a.id === id ? { ...a, completed: !a.completed } : a
@@ -142,6 +165,16 @@ export default function ScheduleMaker() {
               Add
             </button>
           </div>
+          
+          {/* Copy Monday Schedule Button */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <button
+              onClick={copyMondayToWeekdays}
+              className="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              📋 Copy Monday&apos;s Schedule to Weekdays (Tue-Fri)
+            </button>
+          </div>
         </div>
 
         {/* Activities List */}
@@ -189,5 +222,7 @@ export default function ScheduleMaker() {
     </div>
   );
 }
+
+
 
 
