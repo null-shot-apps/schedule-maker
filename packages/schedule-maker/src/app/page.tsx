@@ -2,83 +2,191 @@
 
 import { useEffect, useState } from 'react';
 
-const slogans = [
-  "Turn chats into apps",
-  "Prompt. Ship. Repeat.",
-  "Build anything from a chat",
-  "Ideas → Apps, instantly",
-  "From zero to MVP in minutes",
-  "Your cofounder in the command line",
-  "Draft, iterate, deploy",
-  "Ship faster than you can type",
-  "Design in text, deliver in code",
-  "Dream it. Prompt it. Run it.",
-  "Chat-native app building",
-  "From prompt to product",
-  "One prompt, infinite apps",
-  "Stop scaffolding. Start shipping.",
-  "Prototype at the speed of thought",
-  "Make conversations executable"
-];
+type Activity = {
+  id: string;
+  title: string;
+  day: string;
+  time: string;
+  completed: boolean;
+};
 
-export default function Landing() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isVisible, setIsVisible] = useState(true);
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
+export default function ScheduleMaker() {
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [selectedDay, setSelectedDay] = useState(DAYS[0]);
+  const [newActivity, setNewActivity] = useState({ title: '', time: '' });
+  const [showReminder, setShowReminder] = useState(false);
+  const [reminderText, setReminderText] = useState('');
+
+  // Load activities from localStorage
   useEffect(() => {
-    const interval = setInterval(() => {
-      setIsVisible(false);
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % slogans.length);
-        setIsVisible(true);
-      }, 400);
-    }, 2800);
-
-    return () => clearInterval(interval);
+    const saved = localStorage.getItem('weeklyActivities');
+    if (saved) {
+      setActivities(JSON.parse(saved));
+    }
   }, []);
 
+  // Save activities to localStorage
+  useEffect(() => {
+    if (activities.length > 0) {
+      localStorage.setItem('weeklyActivities', JSON.stringify(activities));
+    }
+  }, [activities]);
+
+  // Check for reminders every minute
+  useEffect(() => {
+    const checkReminders = () => {
+      const now = new Date();
+      const currentDay = DAYS[now.getDay() === 0 ? 6 : now.getDay() - 1];
+      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const upcomingActivities = activities.filter(
+        activity => activity.day === currentDay && activity.time === currentTime && !activity.completed
+      );
+
+      if (upcomingActivities.length > 0) {
+        setReminderText(`Reminder: ${upcomingActivities.map(a => a.title).join(', ')}`);
+        setShowReminder(true);
+        setTimeout(() => setShowReminder(false), 5000);
+      }
+    };
+
+    const interval = setInterval(checkReminders, 60000);
+    checkReminders(); // Check immediately
+    return () => clearInterval(interval);
+  }, [activities]);
+
+  const addActivity = () => {
+    if (newActivity.title && newActivity.time) {
+      const activity: Activity = {
+        id: Date.now().toString(),
+        title: newActivity.title,
+        day: selectedDay,
+        time: newActivity.time,
+        completed: false,
+      };
+      setActivities([...activities, activity]);
+      setNewActivity({ title: '', time: '' });
+    }
+  };
+
+  const toggleComplete = (id: string) => {
+    setActivities(activities.map(a => 
+      a.id === id ? { ...a, completed: !a.completed } : a
+    ));
+  };
+
+  const deleteActivity = (id: string) => {
+    setActivities(activities.filter(a => a.id !== id));
+  };
+
+  const todayActivities = activities
+    .filter(a => a.day === selectedDay)
+    .sort((a, b) => a.time.localeCompare(b.time));
+
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-black text-white">
-      {/* Enhanced animated aurora background layers */}
-      <div className="absolute inset-0 bg-aurora-layer-1" />
-      <div className="absolute inset-0 bg-aurora-layer-2" />
-      <div className="absolute inset-0 bg-aurora-layer-3" />
-      
-      {/* Floating particles overlay */}
-      <div className="absolute inset-0 bg-particles" />
-      
-      {/* Main content - centered */}
-      <main className="relative z-10 h-full flex flex-col items-center justify-center px-6">
-        <h1 className="text-center text-[clamp(28px,6vw,64px)] font-medium tracking-tight mb-4">
-          Turn Chats into Apps
-        </h1>
-        
-        {/* Rotating slogans */}
-        <div className="mt-4 h-8 md:h-10 overflow-hidden flex items-center justify-center">
-          <span
-            className={`inline-block text-center text-[clamp(18px,3vw,32px)] font-light transition-all duration-[400ms] ease-in-out ${
-              isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
-            }`}
-          >
-            {slogans[currentIndex]}
-          </span>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4 md:p-8">
+      {/* Reminder Notification */}
+      {showReminder && (
+        <div className="fixed top-4 right-4 z-50 bg-yellow-400 text-black px-6 py-4 rounded-lg shadow-2xl animate-bounce">
+          <p className="font-bold">🔔 {reminderText}</p>
         </div>
-      </main>
-      
-      {/* Start Prompting arrow pointing left - bottom left */}
-      <div className="absolute left-6 md:left-8 bottom-[5%] z-20 flex items-center gap-3 arrow-point-left">
-        <div className="flex items-center gap-2 text-white/80 font-medium text-sm md:text-base">
-          <svg 
-            className="w-5 h-5 md:w-6 md:h-6 animate-bounce-horizontal" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          <span>Start prompting</span>
+      )}
+
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl md:text-5xl font-bold text-white text-center mb-8">
+          📅 Weekly Activity Scheduler
+        </h1>
+
+        {/* Day Selector */}
+        <div className="bg-white rounded-xl shadow-xl p-6 mb-6">
+          <div className="flex flex-wrap gap-2 justify-center">
+            {DAYS.map(day => (
+              <button
+                key={day}
+                onClick={() => setSelectedDay(day)}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                  selectedDay === day
+                    ? 'bg-purple-600 text-white scale-105'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Add Activity Form */}
+        <div className="bg-white rounded-xl shadow-xl p-6 mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Add Activity for {selectedDay}</h2>
+          <div className="flex flex-col md:flex-row gap-4">
+            <input
+              type="text"
+              placeholder="Activity title"
+              value={newActivity.title}
+              onChange={(e) => setNewActivity({ ...newActivity, title: e.target.value })}
+              className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-gray-800"
+            />
+            <input
+              type="time"
+              value={newActivity.time}
+              onChange={(e) => setNewActivity({ ...newActivity, time: e.target.value })}
+              className="px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-gray-800"
+            />
+            <button
+              onClick={addActivity}
+              className="px-6 py-3 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
+        {/* Activities List */}
+        <div className="bg-white rounded-xl shadow-xl p-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            {selectedDay}'s Schedule ({todayActivities.length})
+          </h2>
+          {todayActivities.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">No activities scheduled for this day</p>
+          ) : (
+            <div className="space-y-3">
+              {todayActivities.map(activity => (
+                <div
+                  key={activity.id}
+                  className={`flex items-center gap-4 p-4 rounded-lg border-2 transition-all ${
+                    activity.completed
+                      ? 'bg-green-50 border-green-300'
+                      : 'bg-gray-50 border-gray-300'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={activity.completed}
+                    onChange={() => toggleComplete(activity.id)}
+                    className="w-6 h-6 cursor-pointer"
+                  />
+                  <div className="flex-1">
+                    <p className={`font-semibold text-lg ${activity.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}>
+                      {activity.title}
+                    </p>
+                    <p className="text-sm text-gray-600">{activity.time}</p>
+                  </div>
+                  <button
+                    onClick={() => deleteActivity(activity.id)}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
+
