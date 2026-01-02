@@ -147,7 +147,7 @@ export default function ScheduleMaker() {
         {/* Activities List */}
         <div className="bg-white rounded-xl shadow-xl p-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            {selectedDay}'s Schedule ({todayActivities.length})
+            {selectedDay}&apos;s Schedule ({todayActivities.length})
           </h2>
           {todayActivities.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No activities scheduled for this day</p>
@@ -189,4 +189,5 @@ export default function ScheduleMaker() {
     </div>
   );
 }
+
 
